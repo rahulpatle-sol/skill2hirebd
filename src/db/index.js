@@ -1,4 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg; // Named export error fix karne ke liye
 import { PrismaPg } from "@prisma/adapter-pg";
 import pg from "pg";
 
@@ -9,16 +10,17 @@ const connectDB = async () => {
         const connectionString = process.env.DATABASE_URL;
         
         if (!connectionString) {
-            throw new Error("DATABASE_URL is missing in .env file!");
+            console.error("❌ ERROR: DATABASE_URL is missing!");
+            process.exit(1);
         }
 
-        // 1. Pehle Pool banao
+        // 1. Connection Pool
         const pool = new pg.Pool({ connectionString });
         
-        // 2. Adapter create karo
+        // 2. Adapter
         const adapter = new PrismaPg(pool);
 
-        // 3. Client ko adapter ke saath initialize karo (Prisma v7 format)
+        // 3. Singleton Pattern check
         if (!prisma) {
             prisma = new PrismaClient({ adapter });
         }
@@ -28,7 +30,8 @@ const connectDB = async () => {
     } catch (error) {
         console.error("🔴 Postgres Connection Failed!");
         console.error("Reason:", error.message);
-        process.exit(1);
+        // Build phase mein fail na ho isliye exit tabhi karo jab system live ho
+        if (process.env.NODE_ENV === 'production') process.exit(1);
     }
 };
 
