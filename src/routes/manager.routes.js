@@ -1,17 +1,24 @@
 import { Router } from "express";
-import { getPendingAssessments, verifyTalentStatus } from "../controllers/manager.controller.js";
+import { 
+    getPendingAssessments, 
+    verifyTalentStatus, 
+    getPendingReviews, 
+    manageMentorSession, 
+    getGlobalJobStats 
+} from "../controllers/manager.controller.js";
 import { verifyJWT, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-// Saare manager routes ko verifyJWT aur Role check se guzaaro
+// Middleware: Pehle login check, phir Role check
 router.use(verifyJWT);
 router.use(authorizeRoles("MANAGER"));
 
-// Pending reviews mangwane ke liye
-router.route("/pending-reviews").get(getPendingAssessments);
-
-// Talent verify karne ke liye (PATCH request best rahegi kyunki hum status update kar rahe hain)
-router.route("/verify-talent/:assessmentId").patch(verifyTalentStatus);
+// --- System Controls ---
+router.get("/bridge", getPendingReviews);          // Poora data (Assessments + Profiles)
+router.get("/pending-reviews", getPendingAssessments); // Sirf Pending Assessments
+router.patch("/verify-talent/:talentId", verifyTalentStatus); // Approve/Reject Talent
+router.patch("/mentor-session/:sessionId", manageMentorSession); // Approve Mentor Session
+router.get("/job-stats", getGlobalJobStats);      // HR Activity Monitor
 
 export default router;
