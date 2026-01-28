@@ -1,32 +1,23 @@
-import { Redis } from '@upstash/redis';
-import dotenv from 'dotenv';
+import Redis from "ioredis";
 
-// 1. Sabse pehle env load karo (Zaroori hai!)
-dotenv.config();
+// Render dashboard se 'Internal Redis URL' ko yahan add karna
+const redisUrl = process.env.REDIS_URL; 
 
-const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
-const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-// 2. Debugging ke liye check karo (Inhe hata dena baad mein)
-if (!redisUrl || !redisToken) {
-    console.error("⚠️  UPSTASH_REDIS_REST_URL or TOKEN is undefined in process.env!");
-}
-
-// 3. Redis client initialize karo
-const redis = new Redis({
-  url: redisUrl,
-  token: redisToken,
+const redis = new Redis(redisUrl, {
+    maxRetriesPerRequest: null,
+    // Internal network mein TLS ki zaroorat nahi hoti (Render default)
+    connectTimeout: 10000,
+    retryStrategy(times) {
+        return Math.min(times * 50, 2000);
+    }
 });
 
-const connectRedis = async () => {
-    try {
-        // HTTP/REST mein handshake test
-        await redis.set("ping", "pong");
-        console.log("🚀 Upstash Redis (HTTPS/REST) Connected Successfully!");
-    } catch (error) {
-        console.error("❌ Redis Connection Test Failed:", error.message);
-    }
-};
+redis.on("error", (err) => {
+    console.log("❌ Render Internal Redis Error:", err.message);
+});
 
-export { redis, connectRedis };
+redis.on("connect", () => {
+    console.log("🚀 Render Internal Redis Connected Successfully!");
+});
+
 export default redis;
