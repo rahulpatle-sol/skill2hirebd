@@ -1,4 +1,4 @@
-import { tr } from "framer-motion/client";
+
 import nodemailer from "nodemailer";
 
 export const sendEmail = async ({ email, subject, html }) => {
