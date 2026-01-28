@@ -8,7 +8,9 @@ const app = express();
 
 // CORS mein dono port allow kar do (5173 admin aur 5174 user)
 app.use(cors({ 
-    origin: ["http://localhost:5173", "http://localhost:5174"], 
+    origin: ["http://localhost:5173", "http://localhost:5174",
+        "https://skill2-hire.vercel.app","https://ecojobboard.vercel.app/"
+    ], 
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
