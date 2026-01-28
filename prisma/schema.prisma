@@ -1,0 +1,128 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  
+}
+
+// 1. Roles Definition
+enum Role {
+  TALENT
+  HR
+  MENTOR
+  MANAGER
+  ADMIN
+}
+
+// 2. Main User Table
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  fullName      String
+  role          Role     @default(TALENT)
+  profilePic    String?  // Cloudinary URL
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Profile Relations
+  talentProfile Talent?
+  hrProfile     Recruiter?
+  mentorProfile MentorProfile?
+  
+  // System Relations (Self-relation for Managers/Subordinates)
+  managerId     String?
+  managedBy     User?    @relation("ManagerToUser", fields: [managerId], references: [id])
+  subordinates  User[]   @relation("ManagerToUser")
+  isVerified        Boolean  @default(false)
+  otp               String?
+  otpExpiry         DateTime?
+  googleId          String?  @unique
+}
+
+// 3. Talent Profile (For Students/Jobseekers)
+model Talent {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  skills       String[]
+  resumeUrl    String?  // Cloudinary URL
+  isVerified   Boolean  @default(false) // Badge logic
+  applications Application[]
+  assessment   Assessment?//
+}
+model Assessment {
+  id          String   @id @default(uuid())
+  talentId    String   @unique
+  talent      Talent   @relation(fields: [talentId], references: [id])
+  
+  // Aptitude Links (JSON format mein store karenge saare subjects)
+  aptitudeLinks Json?    
+  
+  // baki stages ka data
+  onlineTestScore Int?
+  projectGithub   String?
+  projectLiveLink String?
+  
+  // Verification logic
+  status      String   @default("PENDING") // PENDING, UNDER_REVIEW, VERIFIED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+// 4. Recruiter Profile (For HRs)
+model Recruiter {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  companyName String
+  jobs        Job[]
+}
+
+// 5. Mentor Profile
+model MentorProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  expertise   String[]
+  bio         String?
+  sessions    MentorSession[]
+}
+
+// 6. Job Model
+model Job {
+  id           String   @id @default(uuid())
+  title        String
+  description  String
+  location     String
+  salary       String?
+  jobType      String?  
+  requiredSkills String[]
+  postedById   String
+  recruiter    Recruiter @relation(fields: [postedById], references: [id])
+  applications Application[]
+  createdAt    DateTime @default(now())
+}
+
+// 7. Application Model
+model Application {
+  id        String   @id @default(uuid())
+  jobId     String
+  talentId  String
+  status    String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  job       Job      @relation(fields: [jobId], references: [id])
+  talent    Talent   @relation(fields: [talentId], references: [id])
+  appliedAt DateTime @default(now())
+}
+
+// 8. Mentor Sessions
+model MentorSession {
+  id          String   @id @default(uuid())
+  mentorId    String
+  mentor      MentorProfile @relation(fields: [mentorId], references: [id])
+  title       String
+  date        DateTime
+  maxParticipants Int
+}
