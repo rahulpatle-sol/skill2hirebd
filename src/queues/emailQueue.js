@@ -1,23 +1,45 @@
 import { Queue, Worker } from "bullmq";
-import redis from "../config/redis.js";
+import redis from "../config/redis.js"; 
 import { sendEmail } from "../utils/mailSender.js";
 
-// Connection config
 const connection = redis;
 
 // 1. Create Queue
-export const emailQueue = new Queue("emailQueue", { connection });
+export const emailQueue = new Queue("emailQueue", { 
+    connection,
+    defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+            type: 'exponential',
+            delay: 5000,
+        },
+        removeOnComplete: true,
+        removeOnFail: 100,
+    }
+});
 
-// 2. Create Worker (Ye background mein chalta rahega)
+// 2. Create Worker
 const emailWorker = new Worker("emailQueue", async (job) => {
     const { email, subject, html } = job.data;
     try {
-        await sendEmail({ email, subject, html });
-        console.log(`✅ Email sent successfully to: ${email}`);
+        const result = await sendEmail({ email, subject, html });
+        return result;
     } catch (error) {
-        console.error(`❌ Failed to send email to ${email}:`, error.message);
+        console.error(`❌ Worker Error for Job ${job.id}:`, error.message);
+        throw error; 
     }
-}, { connection });
+}, { 
+    connection,
+    concurrency: 5 
+});
 
-emailWorker.on("completed", (job) => console.log(`Job ${job.id} completed!`));
-emailWorker.on("failed", (job, err) => console.log(`Job ${job.id} failed: ${err.message}`));
+// 3. Listeners
+emailWorker.on("completed", (job) => {
+    console.log(`✅ Job ${job.id} - Email sent successfully!`);
+});
+
+emailWorker.on("failed", (job, err) => {
+    console.log(`🔥 Job ${job.id} failed: ${err.message}`);
+});
+
+export default emailQueue;
