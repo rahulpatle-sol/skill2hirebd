@@ -37,7 +37,7 @@ model User {
   managerId     String?
   managedBy     User?    @relation("ManagerToUser", fields: [managerId], references: [id])
   subordinates  User[]   @relation("ManagerToUser")
-  isVerified        Boolean  @default(false)
+  isVerified        Boolean  @default(true)
   otp               String?
   otpExpiry         DateTime?
   googleId          String?  @unique
